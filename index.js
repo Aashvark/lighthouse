@@ -5,7 +5,7 @@ const path = require('path');
 const process = require('process');
 const { google } = require('googleapis');
 
-const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
+const CREDENTIALS_PATH = path.join(process.cwd(), 'json/credentials.json');
 
 async function writeRecord(record) {
     const auth = new google.auth.GoogleAuth({
