@@ -36,6 +36,8 @@ function getID(DocType) {
 
 async function pull(DocType, RecordDateFrom, RecordDateTo) {
     const options = new Chrome.Options()
+        .addArguments("--headless=new")
+        .addArguments("--window-size=1280,700")
         .excludeSwitches('enable-logging')
         .setPageLoadStrategy("eager")
         .setUserPreferences({
@@ -62,6 +64,7 @@ async function pull(DocType, RecordDateFrom, RecordDateTo) {
         await driver.wait(until.elementLocated(By.id("btnCsvButton")), 5000);
         await driver.findElement(By.id("btnCsvButton")).click();
     } catch (error) {
+        console.log("restarting");
         await driver.quit();
         return pull(DocType, RecordDateFrom, RecordDateTo);
     }
@@ -129,12 +132,4 @@ async function run() {
     await pull("NOTICE OF CONTEST OF LIEN", "01/1/2025", "01/2/2025");
 }
 
-const job = new CronJob(
-	'0 0 0 * * 7', // cronTime
-	function () {
-        run();
-    }, // onTick
-	null, // onComplete
-	true, // start
-	'America/New_York' // timeZone
-);
+run();
