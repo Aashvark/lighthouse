@@ -1,4 +1,4 @@
-const { Builder, By, Key, until, util, Browser } = require("selenium-webdriver");
+const { Builder, By, until, Browser } = require("selenium-webdriver");
 const Chrome = require("selenium-webdriver/chrome");
 const fs = require("fs");
 const path = require('path');
@@ -7,24 +7,30 @@ const { google } = require('googleapis');
 
 const CREDENTIALS_PATH = path.join(process.cwd(), 'json/credentials.json');
 
-async function writeRecord(record) {
+async function writeRecord(id, record) {
     const auth = new google.auth.GoogleAuth({
       keyFile: CREDENTIALS_PATH,
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
 
     const sheets = google.sheets({ version: 'v4', auth });
-
-    const spreadsheetId = '1qDNSxv5jsZquCxeRneZQAz_wMT2a_oWAT4p2Kh9ALtc';
     const range = 'January';
 
     const request = {
-      spreadsheetId: spreadsheetId,
+      spreadsheetId: id,
       range: range,
       valueInputOption: 'USER_ENTERED',
       resource: { values: [record] },
     };
     const response = await sheets.spreadsheets.values.append(request);
+}
+
+function getID(DocType) {
+    return "1qDNSxv5jsZquCxeRneZQAz_wMT2a_oWAT4p2Kh9ALtc";
+    //if      (DocType === "PROBATE DOCUMENT")          return '1uEUNpoqq5v4CcfQOYx3ECa6ems2n6CUk20oShefmj2w';
+    //else if (DocType === "LIENS")                     return '187HiafgDVlCLFQaZ0dWZB_5NrA4m9tQeYBAThxd78ZI';
+    //else if (DocType === "LIS PENDENS")               return '18eUPlKCP5l7FBLcphnHrvwvFsSxgBuon3-3p841aGr4';
+    //else if (DocType === "NOTICE OF CONTEST OF LIEN") return '1JnSkBDGDPs2fZCAcWcQ7zYreOFwTuIY0GrJbduV_p94';
 }
 
 async function pull(DocType, RecordDateFrom, RecordDateTo) {
@@ -69,7 +75,9 @@ async function pull(DocType, RecordDateFrom, RecordDateTo) {
     });
 
     let index = 0;
-    for (let name of new Set(fs.readFileSync(path, 'utf8').trimEnd().split("\n").map((item) => { return item.split(',')[1].replaceAll("\"", ""); }))) {
+    let nameindex = (DocType === "LIENS" || DocType === "LIS PENDENS") ? 1 : 0;
+
+    for (let name of new Set(fs.readFileSync(path, 'utf8').trimEnd().split("\n").map((item) => { return item.split(',')[nameindex].replaceAll("\"", ""); }))) {
         if (name == "IndirectName") continue;
         
         let namelist = name.split(" ");
@@ -106,11 +114,18 @@ async function pull(DocType, RecordDateFrom, RecordDateTo) {
             if (record.at(record.length - 1) === undefined) record[record.length - 1]  = "";
             record.push(link);
 
-            await writeRecord(record);
+            await writeRecord(getID(DocType), record);
         }
         await drive.quit();
     }
     await driver.quit();
 }
 
-pull("LIENS", "01/01/2025", "01/08/2025");
+async function run() {
+    await pull("PROBATE DOCUMENT", "01/1/2025", "01/2/2025");
+    await pull("LIENS", "01/1/2025", "01/2/2025");
+    await pull("LIS PENDENS", "01/1/2025", "01/2/2025");
+    await pull("NOTICE OF CONTEST OF LIEN", "01/1/2025", "01/2/2025");
+}
+
+run();
