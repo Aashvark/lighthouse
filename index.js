@@ -36,8 +36,7 @@ function getID(DocType) {
 
 async function pull(DocType, RecordDateFrom, RecordDateTo) {
     const options = new Chrome.Options()
-        .addArguments("--headless=new")
-        .addArguments("--window-size=1280,700")
+        .addArguments("--window-size=300,300")
         .excludeSwitches('enable-logging')
         .setPageLoadStrategy("eager")
         .setUserPreferences({
