@@ -130,7 +130,7 @@ async function run() {
 }
 
 const job = new CronJob(
-	'0 */1 * * * *', // cronTime
+	'0 0 0 * * 7', // cronTime
 	function () {
         run();
     }, // onTick
