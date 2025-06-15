@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require('path');
 const process = require('process');
 const { google } = require('googleapis');
+const { CronJob } = require('cron');
 
 const CREDENTIALS_PATH = path.join(process.cwd(), 'json/credentials.json');
 
@@ -128,4 +129,12 @@ async function run() {
     await pull("NOTICE OF CONTEST OF LIEN", "01/1/2025", "01/2/2025");
 }
 
-run();
+const job = new CronJob(
+	'0 */1 * * * *', // cronTime
+	function () {
+        run();
+    }, // onTick
+	null, // onComplete
+	true, // start
+	'America/New_York' // timeZone
+);
