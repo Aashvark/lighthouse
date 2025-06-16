@@ -110,37 +110,40 @@ async function pull(DocType, RecordDateFrom, RecordDateTo) {
         }
         
         await driver.sleep(1);
-        for (let p of properties) {
-            let id = p.split("-")
-            let link = `https://www.pcpao.gov/property-details?s=${id[2] + id[1] + id[0] + id[3] + id[4] + id[5]}`;
-            await driver.get(link);
-
-            let record = [ index, name, namelist.slice(1).join(" "), namelist.at(0), await driver.findElement(By.id("property_use")).getText() ];
-            index++;
-
-            let mailling_add = (await driver.findElement(By.id("mailling_add")).getText()).split("\n");
-            record.push(mailling_add[0]);
-            record.push(mailling_add.slice(1).join(" ").split(", ")[0]);
-            record.push(mailling_add.slice(1).join(" ").split(", ")[1].split(" ")[0]);
-            record.push(mailling_add.slice(1).join(" ").split(", ")[1].split(" ")[1]);
-            
-            let site_address = (await driver.findElement(By.id("site_address")).getText()).split("\n");
-            record.push(site_address[0]);
-            record.push(site_address.slice(1).join(" ").split(", ")[0]);
-            record.push(site_address.slice(1).join(" ").split(", ")[1].split(" ")[0]);
-            record.push(site_address.slice(1).join(" ").split(", ")[1].split(" ")[1]);
-            
-            record.push((await driver.findElement(By.id("first_second_owner")).getText()).split("\n")[1]);
-            if (record.at(record.length - 1) === undefined) record[record.length - 1]  = "";
-            record.push(link);
-            await writeRecord(getID(DocType), record);
-        }
+        for (let p of properties) { await openLink(driver, p.split("-")); }
     }
     await driver.quit();
 }
 
+async function openLink(driver, id) {
+    let link = `https://www.pcpao.gov/property-details?s=${id[2] + id[1] + id[0] + id[3] + id[4] + id[5]}`;
+    await driver.get(link);
+
+    if ((await driver.findElement(By.css("body"))).getText() === "504 Gateway Time-out") return await openLink(driver, id);
+
+    let record = [ index, name, namelist.slice(1).join(" "), namelist.at(0), await driver.findElement(By.id("property_use")).getText() ];
+    index++;
+
+    let mailling_add = (await driver.findElement(By.id("mailling_add")).getText()).split("\n");
+    record.push(mailling_add[0]);
+    record.push(mailling_add.slice(1).join(" ").split(", ")[0]);
+    record.push(mailling_add.slice(1).join(" ").split(", ")[1].split(" ")[0]);
+    record.push(mailling_add.slice(1).join(" ").split(", ")[1].split(" ")[1]);
+            
+    let site_address = (await driver.findElement(By.id("site_address")).getText()).split("\n");
+    record.push(site_address[0]);
+    record.push(site_address.slice(1).join(" ").split(", ")[0]);
+    record.push(site_address.slice(1).join(" ").split(", ")[1].split(" ")[0]);
+    record.push(site_address.slice(1).join(" ").split(", ")[1].split(" ")[1]);
+            
+    record.push((await driver.findElement(By.id("first_second_owner")).getText()).split("\n")[1]);
+    if (record.at(record.length - 1) === undefined) record[record.length - 1]  = "";
+    record.push(link);
+    await writeRecord(getID(DocType), record);
+}
+
 async function run() {
-    await pull("PROBATE DOCUMENT",          "06/1/2025", "06/15/2025");
+    //await pull("PROBATE DOCUMENT",          "06/1/2025", "06/15/2025");
     await pull("LIENS",                     "06/1/2025", "06/15/2025");
     await pull("LIS PENDENS",               "06/1/2025", "06/15/2025");
     await pull("NOTICE OF CONTEST OF LIEN", "06/1/2025", "06/15/2025");
