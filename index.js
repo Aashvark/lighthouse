@@ -106,8 +106,7 @@ async function pull(DocType, RecordDateFrom, RecordDateTo) {
         let properties = [];
         for (let row of (await driver.findElements(By.css("tr[role=row]")))) {
             let data = await row.findElements(By.css("td"));
-            if (data.length > 1) console.log((await data.at(5).getText()).split(" ")[0]);
-            if (data.length > 1 && ["0000", "0090", "0110", "0310", "0311", "0810", "0820", "0822", "1000", "1032", "1090", "1120", "1135", "1423", "2226", "2816", "3912", "3913", "4000", "4090"].includes((await data.at(5).getText()).split(" ")[0])) properties.push(await data.at(2).getText());
+            if (data.length > 1 && ["0000", "0090", "0110", "0310", "0311", "0810", "0820", "0822", "1000", "1032", "1090", "1120", "1135", "1423", "2226", "2816", "3912", "3913", "4000", "4090"].includes((await data.at(5).getText()).trim().split(" ")[0])) properties.push(await data.at(2).getText());
         }
         
         await driver.sleep(1);
