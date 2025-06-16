@@ -93,7 +93,7 @@ async function pull(DocType, RecordDateFrom, RecordDateTo) {
     }
 
     let nameindex = (DocType === "LIENS" || DocType === "LIS PENDENS") ? 1 : 0;
-    let peopleSet = new Set(fs.readFileSync(path, 'utf8').trimEnd().split("\n").map((item) => { return item.split(',')[nameindex].replaceAll("\"", ""); }));
+    let peopleSet = new Set(fs.readFileSync(path, 'utf8').trimEnd().split("\n").map((item) => {return item.split(',')[nameindex].replaceAll("\"", ""); }));
 
     for (let name of peopleSet) {
         if (name.split(" ").length <= 1) continue;
@@ -106,16 +106,17 @@ async function pull(DocType, RecordDateFrom, RecordDateTo) {
         let properties = [];
         for (let row of (await driver.findElements(By.css("tr[role=row]")))) {
             let data = await row.findElements(By.css("td"));
-            if (data.length > 1 && ["0000", "0090", "0110", "0310", "0311", "0810", "0820", "0822", "1000", "1032", "1090", "1120", "1135", "1423", "2226", "2816", "3912", "3913", "4000", "4090"].includes((await data.at(5).getText()).split(" ")[0])) properties.push(await data.at(2).getText())
+            if (data.length > 1) console.log((await data.at(5).getText()).split(" ")[0]);
+            if (data.length > 1 && ["0000", "0090", "0110", "0310", "0311", "0810", "0820", "0822", "1000", "1032", "1090", "1120", "1135", "1423", "2226", "2816", "3912", "3913", "4000", "4090"].includes((await data.at(5).getText()).split(" ")[0])) properties.push(await data.at(2).getText());
         }
         
         await driver.sleep(1);
-        for (let p of properties) { await openLink(driver, p.split("-")); }
+        for (let p of properties) { index = await openLink(driver, p.split("-"), index, name); }
     }
     await driver.quit();
 }
 
-async function openLink(driver, id) {
+async function openLink(driver, id, index, name) {
     let link = `https://www.pcpao.gov/property-details?s=${id[2] + id[1] + id[0] + id[3] + id[4] + id[5]}`;
     await driver.get(link);
 
@@ -140,6 +141,7 @@ async function openLink(driver, id) {
     if (record.at(record.length - 1) === undefined) record[record.length - 1]  = "";
     record.push(link);
     await writeRecord(getID(DocType), record);
+    return index;
 }
 
 async function run() {
