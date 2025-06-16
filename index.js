@@ -8,12 +8,12 @@ const { google } = require('googleapis');
 const CREDENTIALS_PATH = path.join(process.cwd(), 'json/credentials.json');
 const range = 'June';
 
-async function writeRecord(id, record) {
-    const auth = new google.auth.GoogleAuth({
-      keyFile: CREDENTIALS_PATH,
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-    });
+const auth = new google.auth.GoogleAuth({
+    keyFile: CREDENTIALS_PATH,
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+});
 
+async function writeRecord(id, record) {
     const response = google.sheets({ version: 'v4', auth }).spreadsheets.values.append({
       spreadsheetId: id,
       range: range,
@@ -23,11 +23,6 @@ async function writeRecord(id, record) {
 }
 
 async function getLastRecordIndex(id) {
-    const auth = new google.auth.GoogleAuth({
-      keyFile: CREDENTIALS_PATH,
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-    });
-
     const response = await google.sheets({ version: 'v4', auth }).spreadsheets.values.get({
       spreadsheetId: id,
       range: range,
@@ -45,10 +40,7 @@ function getID(DocType) {
 async function pull(DocType, RecordDateFrom, RecordDateTo) {
     const options = new Chrome.Options()
         .excludeSwitches('enable-logging')
-        .addArguments("--profile-directory=Default")
-        .addArguments("--disable-extensions")
-        .addArguments("--disable-dev-shm-usage")
-        .addArguments("--no-sandbox")
+        .addArguments("--profile-directory=Default", "--disable-extensions", "--disable-dev-shm-usage", "--no-sandbox")
         .setPageLoadStrategy("eager")
         .setUserPreferences({
             "download.default_directory": `${__dirname}\\csv\\`,
