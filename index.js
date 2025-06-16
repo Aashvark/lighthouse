@@ -89,7 +89,7 @@ async function pull(DocType, RecordDateFrom, RecordDateTo) {
         });
     } else { 
         path = newPath;
-        index = parseInt(await getLastRecordIndex(getID(DocType))) + 1;
+        index = parseInt(await getLastRecordIndex(getID(DocType))) + 1 || 0;
     }
 
     let nameindex = (DocType === "LIENS" || DocType === "LIS PENDENS") ? 1 : 0;
