@@ -45,7 +45,10 @@ function getID(DocType) {
 async function pull(DocType, RecordDateFrom, RecordDateTo) {
     const options = new Chrome.Options()
         .excludeSwitches('enable-logging')
-        .addArguments("--profile-directory=Default", "--disable-extensions", "--disable-dev-shm-usage", "--no-sandbox")
+        .addArguments("--profile-directory=Default")
+        .addArguments("--disable-extensions")
+        .addArguments("--disable-dev-shm-usage")
+        .addArguments("--no-sandbox")
         .setPageLoadStrategy("eager")
         .setUserPreferences({
             "download.default_directory": `${__dirname}\\csv\\`,
@@ -93,7 +96,7 @@ async function pull(DocType, RecordDateFrom, RecordDateTo) {
     }
 
     let nameindex = (DocType === "LIENS" || DocType === "LIS PENDENS") ? 1 : 0;
-    let peopleSet = new Set(fs.readFileSync(path, 'utf8').trimEnd().split("\n").map((item) => {return item.split(',')[nameindex].replaceAll("\"", ""); }));
+    let peopleSet = new Set(fs.readFileSync(path, 'utf8').trimEnd().split("\n").map((item) => { return item.split(',')[nameindex].trim().replaceAll("\"", ""); }));
 
     for (let name of peopleSet) {
         if (name.split(" ").length <= 1) continue;
@@ -110,16 +113,16 @@ async function pull(DocType, RecordDateFrom, RecordDateTo) {
         }
         
         await driver.sleep(1);
-        for (let p of properties) { index = await openLink(driver, p.split("-"), index, name); }
+        for (let p of properties) { index = await openLink(driver, p.split("-"), index, name, namelist, DocType); }
     }
     await driver.quit();
 }
 
-async function openLink(driver, id, index, name) {
+async function openLink(driver, id, index, name, namelist, DocType) {
     let link = `https://www.pcpao.gov/property-details?s=${id[2] + id[1] + id[0] + id[3] + id[4] + id[5]}`;
     await driver.get(link);
 
-    if ((await driver.findElement(By.css("body"))).getText() === "504 Gateway Time-out") return await openLink(driver, id);
+    if ((await driver.findElement(By.css("body"))).getText() === "504 Gateway Time-out") return await openLink(driver, id, index, name, namelist, DocType);
 
     let record = [ index, name, namelist.slice(1).join(" "), namelist.at(0), await driver.findElement(By.id("property_use")).getText() ];
     index++;
@@ -144,10 +147,10 @@ async function openLink(driver, id, index, name) {
 }
 
 async function run() {
-    //await pull("PROBATE DOCUMENT",          "06/1/2025", "06/15/2025");
-    await pull("LIENS",                     "06/1/2025", "06/15/2025");
-    await pull("LIS PENDENS",               "06/1/2025", "06/15/2025");
-    await pull("NOTICE OF CONTEST OF LIEN", "06/1/2025", "06/15/2025");
+    await pull("PROBATE DOCUMENT",          "05/1/2025", "05/31/2025");
+    await pull("LIENS",                     "05/1/2025", "05/31/2025");
+    await pull("LIS PENDENS",               "05/1/2025", "05/31/2025");
+    await pull("NOTICE OF CONTEST OF LIEN", "05/1/2025", "05/31/2025");
 }
 
 run();
