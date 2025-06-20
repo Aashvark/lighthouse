@@ -163,9 +163,10 @@ async function pullProbates(RecordDateFrom, RecordDateTo) {
     await driver.findElement(By.id("caseSearch")).click();
 
     let index = 0;
-    await driver.wait(until.elementLocated(By.css("#caseList")), 10000);
+    await driver.wait(until.elementLocated(By.css("#caseList")), 100000);
     let len = parseInt((await driver.findElement(By.css("#main > div:nth-child(10) > div > div.card-header > div > div.col-sm-8.col-md-8.search-bar-results")).getText()).split(" ")[2]);
     let people = [];
+
     while (index < len) {
         await driver.wait(until.elementLocated(By.css("#caseList_length")), 10000);
         await driver.findElement(By.css("#caseList_length > label > select")).click();
@@ -174,7 +175,7 @@ async function pullProbates(RecordDateFrom, RecordDateTo) {
         await driver.sleep(10);
         index++;
 
-        let name = (await driver.findElement(By.css(`#caseList > tbody > tr:nth-child(${index}) > td:nth-child(4)`)).getText()).split(":")[1].replace("THE ESTATE OF", "").trim();  
+        let name = (await driver.findElement(By.css(`#caseList > tbody > tr:nth-child(${index}) > td:nth-child(4)`)).getText()).split(":")[1].replace("THE ESTATE OF", "").trim();
         if (people.map((person) => person[0]).includes(name)) continue;
 
         await driver.findElement(By.css(`#caseList > tbody > tr:nth-child(${index}) > td.colCaseNumber > a`)).click();
@@ -183,6 +184,7 @@ async function pullProbates(RecordDateFrom, RecordDateTo) {
         await driver.findElement(By.css("#caseDetails > div.card-header > div > div.col-sm-2.col-md-2.search-bar-refine > a.pull-left.print-icon.print-icon-text")).click();
         people.push([name, beneficiary, attorney]);
     }
+    console.info(people);
     
     for (let person of people) {
         let name = person[1]
@@ -198,7 +200,6 @@ async function pullProbates(RecordDateFrom, RecordDateTo) {
             let data = await row.findElements(By.css("td"));
             if (data.length > 1 && ["0000", "0090", "0110", "0310", "0311", "0810", "0820", "0822", "1000", "1032", "1090", "1120", "1135", "1423", "2226", "2816", "3912", "3913", "4000", "4090"].includes((await data.at(5).getText()).trim().split(" ")[0])) properties.push(await data.at(2).getText());
         }
-        console.log(properties);
     }
 }
 
