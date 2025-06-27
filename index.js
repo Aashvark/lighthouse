@@ -1,10 +1,9 @@
-const { Builder, By, until, Browser } = require("selenium-webdriver");
+const { Builder, By, until, Browser, WebDriver } = require("selenium-webdriver");
 const Chrome = require("selenium-webdriver/chrome");
 const fs = require("fs");
 const path = require('path');
 const process = require('process');
 const { google } = require('googleapis');
-const { console } = require("inspector");
 
 const CREDENTIALS_PATH = path.join(process.cwd(), 'json/credentials.json');
 let range;
@@ -45,7 +44,8 @@ async function pull(DocType, RecordDateFrom, RecordDateTo) {
         .setPageLoadStrategy("eager")
         .setUserPreferences({
             "download.default_directory": `${__dirname}\\csv\\`,
-            "download.prompt_for_download": false
+            "download.prompt_for_download": false,
+            "profile.managed_default_content_settings.images": 2
         });
 
     let driver = await new Builder().forBrowser(Browser.CHROME).setChromeOptions(options).build();
@@ -168,7 +168,7 @@ async function pullProbates(RecordDateFrom, RecordDateTo) {
     let people = [];
 
     while (index < len) {
-        await driver.wait(until.elementLocated(By.css("#caseList_length")), 10000);
+        await driver.wait(until.elementLocated(By.css("#caseList_length > label > select")), 10000);
         await driver.findElement(By.css("#caseList_length > label > select")).click();
         await driver.findElement(By.css("#caseList_length > label > select > option:nth-child(5)")).click();
         await driver.findElement(By.css("#caseList_length > label > select")).click();
@@ -184,28 +184,115 @@ async function pullProbates(RecordDateFrom, RecordDateTo) {
         await driver.findElement(By.css("#caseDetails > div.card-header > div > div.col-sm-2.col-md-2.search-bar-refine > a.pull-left.print-icon.print-icon-text")).click();
         people.push([name, beneficiary, attorney]);
     }
-    console.info(people);
     
     for (let person of people) {
-        let name = person[1]
+        let name = person[0]
         if (name.split(" ").length <= 1) continue;
         
-        let namelist = name.split(" ");
-        if (namelist.length > 3 && !(namelist.includes("JR") || namelist.includes("SR") || namelist.includes("TRE")) || ["LLC", "INC", "TRUSTEE"].includes(namelist[namelist.length - 1])) continue;
+        let namelist = name.replace("SR", "").replace("JR", "").trim().split(" ");
+        if (namelist.length > 3 && !namelist.includes("TRE") || ["LLC", "INC", "TRUSTEE"].includes(namelist[namelist.length - 1])) continue;
 
-        await driver.get(`https://www.pcpao.gov/quick-search?qu=1&input=${name.split(" ")[0]},%20${name.split(" ")[1]}&search_option=owner`);
+        let records = await searchName(driver, namelist);
+        if (records === undefined || records.length === 0) continue;
 
-        let properties = [];
-        for (let row of (await driver.findElements(By.css("tr[role=row]")))) {
-            let data = await row.findElements(By.css("td"));
-            if (data.length > 1 && ["0000", "0090", "0110", "0310", "0311", "0810", "0820", "0822", "1000", "1032", "1090", "1120", "1135", "1423", "2226", "2816", "3912", "3913", "4000", "4090"].includes((await data.at(5).getText()).trim().split(" ")[0])) properties.push(await data.at(2).getText());
+        let last = [];
+        for (let record of records) {
+            if (last === undefined) continue;
+            else if (last.filter(a => parseInt(a[2]) < parseInt(record[2])).length == 0) last = [record];
+            else if (last.filter(a => parseInt(a[2]) === parseInt(record[2])).length != 0) last.push(record);
         }
+
+        last = last.map(record => [person[0]].concat(record.concat([person[1], person[2]])));
+
+        if (person[2] === "") {
+            writeRecord(getID("PROBATE DOCUMENT"), l);
+            continue;
+        }
+        
+        let attorney = person[2].replace("SR", "").replace("JR", "").trim().split(" ");
+        
+        await driver.get(`https://www.floridabar.org/directories/find-mbr/?lName=${attorney[attorney.length - 1]}&fName=${attorney[0]}&sdx=N&eligible=Y&deceased=N&pageNumber=1&pageSize=100`)
+        
+        let result = (await driver.findElements(By.css("#output > .section-body"))).at(0);
+        let attorney_info = [];
+        attorney_info.push((await result.findElement(By.css(".profile-bar-number")).getText()).substring(5));
+        
+        let long_text = (await result.findElement(By.css("div.profile-contact > p:nth-child(1)")).getText()).split("\n");
+        attorney_info.push(long_text[0]);
+        attorney_info.push(long_text.splice(long_text.length - 2).join(" "));
+        
+        long_text = (await result.findElement(By.css("div.profile-contact > p:nth-child(2)")).getText()).split("\n");
+        attorney_info.push(long_text[0].includes("Office:") ? long_text[0].substring(8) : "");
+        attorney_info.push(long_text[1].includes("Cell:")   ? long_text[0].substring(8) : "");
+        attorney_info.push(await result.findElement(By.css("div.profile-contact > p:nth-child(2) .icon-email")).getText());
+
+        for (let rec of last.map(record => record.concat(attorney_info))) writeRecord(getID("PROBATE DOCUMENT"), rec);
     }
+    driver.quit();
+}
+
+async function searchName(driver, name) {
+    await driver.get(`https://www.pcpao.gov/quick-search?qu=1&input=${name[name.length - 1]},%20${name.slice(0, name.length - 1).join(" ")}&search_option=owner`);
+    try { await driver.wait(until.elementLocated(By.css("#quickSearch > tbody > tr")), 10000); }
+    catch (e) { return await searchName(driver, name) }
+    const rows = await driver.findElements(By.css("#quickSearch > tbody > tr"));
+    
+    if (rows.length === 1 && (await rows.at(0).findElements(By.className("dataTables_empty"))).length > 0) return name.length > 2 ? await searchName(driver, [name[0], name[name.length - 1]]) : undefined;
+    
+    let estates = [];
+    for (const row of await rows) { if ((await (await row.findElements(By.css("td"))).at(1).getText()).includes("EST")) estates.push(row); }
+    if (estates.length != 0) console.log(`FOUND EST FOR: ${name.join(" ")}`);
+    estates = estates.length != 0 ? estates : rows;
+
+    let properties = [];
+    for (const estate of await estates) {
+        let td = await estate.findElements(By.css("td"));
+        let values = [(await td.at(5).getText()).substring(0, 4), (await td.at(2).getText()).split("-")];
+        if (["0000", "0090", "0110", "0310", "0311", "0810", "0820", "0822", "1000", "1032", "1090", "1120", "1135", "1423", "2226", "2816", "3912", "3913", "4000", "4090"].includes(await values.at(0))) properties.push(values);
+    }
+
+    let parcels = [];
+    for (const value of properties) parcels.push(await searchProperty(driver, [name[name.length - 1], name.slice(0, name.length - 1).join(" ")], value));
+    return parcels;
+}
+
+async function searchProperty(driver, name, value) {
+    let parcel = value.at(1);
+    let link = `https://www.pcpao.gov/property-details?s=${parcel[2] + parcel[1] + parcel[0] + parcel.slice(3).join("")}`;
+    let record = [value.at(0), link];
+
+    await driver.get(link);
+    if ((await driver.findElement(By.css("body"))).getText() === "504 Gateway Time-out") return await searchProperty(driver, name, value);
+
+    let homesteads = (await driver.findElements(By.css("#tblExemptions > tbody > tr"))).filter(async row => await row.getAttribute("bg-color") === null);
+    let last;
+    let index = 0;
+    while (last === undefined && index < homesteads.length) {
+        if (await homesteads[index].getAttribute("bg-color") != "#ff4747") last = await homesteads[index].findElement(By.className("sorting_1")).getText();
+        index++;
+    }
+    record.push(last);
+    record = record.concat(name[name.length - 1], name.slice(0, name.length - 1));
+    record.push((await driver.findElement(By.id("mailling_add")).getText()).replace("(Unincorporated)", ""));
+
+    let mailling_add = record.at(5).split("\n").slice(1).join(" ").split(", ");
+    record.push(mailling_add[0]);
+    record = record.concat(mailling_add[1].split(" "));
+
+    record.push((await driver.findElement(By.id("site_address")).getText()).replace("(Unincorporated)", ""));
+    let site_address = record.at(9).split("\n").slice(1).join(" ").split(", ");
+    record.push(site_address[0]);
+    record = record.concat(site_address[1].split(" "));
+
+    record.push((await driver.findElement(By.id("first_second_owner")).getText()).split("\n")[1]);
+    if (record.at(record.length - 1) === undefined) record[record.length - 1]  = "";
+    return record;
 }
 
 async function run() {
     range = 'July';
-    await pullProbates("06/01/2025", "06/08/2025");
+
+    await pullProbates("06/03/2025", "06/03/2025");
     //await pull("PROBATE DOCUMENT",          "03/1/2025", "03/31/2025");
     //await pull("LIENS",                     "03/1/2025", "03/15/2025");
     //await pull("LIS PENDENS",               "03/1/2025", "03/31/2025");
