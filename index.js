@@ -205,11 +205,11 @@ async function pullProbates(RecordDateFrom, RecordDateTo) {
         last = last.map(record => [person[0]].concat(record.concat([person[1], person[2]])));
 
         if (person[2] === "") {
-            writeRecord(getID("PROBATE DOCUMENT"), l);
+            for (let rec of last) writeRecord(getID("PROBATE DOCUMENT"), rec);
             continue;
         }
         
-        let attorney = person[2].replace("SR", "").replace("JR", "").trim().split(" ");
+        let attorney = person[2].replace("SR", "").replace("JR", "").replace("ESQ", "").trim().split(" ");
         
         await driver.get(`https://www.floridabar.org/directories/find-mbr/?lName=${attorney[attorney.length - 1]}&fName=${attorney[0]}&sdx=N&eligible=Y&deceased=N&pageNumber=1&pageSize=100`)
         
@@ -247,7 +247,7 @@ async function searchName(driver, name) {
     let properties = [];
     for (const estate of await estates) {
         let td = await estate.findElements(By.css("td"));
-        let values = [(await td.at(5).getText()).substring(0, 4), (await td.at(2).getText()).split("-")];
+        let values = [(await td.at(5).getText()).split(" ")[0], (await td.at(2).getText()).split("-")];
         if (["0000", "0090", "0110", "0310", "0311", "0810", "0820", "0822", "1000", "1032", "1090", "1120", "1135", "1423", "2226", "2816", "3912", "3913", "4000", "4090"].includes(await values.at(0))) properties.push(values);
     }
 
@@ -273,26 +273,26 @@ async function searchProperty(driver, name, value) {
     }
     record.push(last);
     record = record.concat(name[name.length - 1], name.slice(0, name.length - 1));
-    record.push((await driver.findElement(By.id("mailling_add")).getText()).replace("(Unincorporated)", ""));
+    record.push((await driver.findElement(By.id("mailling_add")).getText()).replace("(Unincorporated)", "").trim());
 
     let mailling_add = record.at(5).split("\n").slice(1).join(" ").split(", ");
     record.push(mailling_add[0]);
-    record = record.concat(mailling_add[1].split(" "));
+    record = record.concat(mailling_add[1].trim().split(" "));
 
-    record.push((await driver.findElement(By.id("site_address")).getText()).replace("(Unincorporated)", ""));
+    record.push((await driver.findElement(By.id("site_address")).getText()).replace("(Unincorporated)", "").trim());
     let site_address = record.at(9).split("\n").slice(1).join(" ").split(", ");
     record.push(site_address[0]);
-    record = record.concat(site_address[1].split(" "));
+    record = record.concat(site_address[1].trim().split(" "));
 
-    record.push((await driver.findElement(By.id("first_second_owner")).getText()).split("\n")[1]);
+    record.push((await driver.findElement(By.id("first_second_owner")).getText()).trim().split("\n")[1]);
     if (record.at(record.length - 1) === undefined) record[record.length - 1]  = "";
     return record;
 }
 
 async function run() {
-    range = 'July';
+    range = 'June';
 
-    await pullProbates("06/03/2025", "06/03/2025");
+    await pullProbates("06/01/2025", "06/30/2025");
     //await pull("PROBATE DOCUMENT",          "03/1/2025", "03/31/2025");
     //await pull("LIENS",                     "03/1/2025", "03/15/2025");
     //await pull("LIS PENDENS",               "03/1/2025", "03/31/2025");
