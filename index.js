@@ -191,7 +191,6 @@ async function pullProbates(RecordDateFrom, RecordDateTo) {
         catch (e) { attorney = ""; }
         await driver.findElement(By.css("#caseDetails > div.card-header > div > div.col-sm-2.col-md-2.search-bar-refine > a.pull-left.print-icon.print-icon-text")).click();
         people.push([name, beneficiary, attorney]);
-        console.log([name, beneficiary, attorney])
     }
     
     for (let person of people) {
@@ -310,10 +309,10 @@ async function searchProperty(driver, name, value) {
 async function run() {
     range = 'december';
 
-    //await pullProbates("01/01/2025", "01/07/2025");
-    //await pullProbates("01/08/2025", "01/14/2025");
-    //await pullProbates("01/15/2025", "01/21/2025");
-    await pullProbates("05/1/2025", "05/07/2025");
+    await pullProbates("04/01/2025", "04/07/2025");
+    //await pullProbates("04/08/2025", "04/14/2025");
+    //await pullProbates("04/15/2025", "04/21/2025");
+    //await pullProbates("05/1/2025", "05/07/2025");
     //await pull("PROBATE DOCUMENT",          "03/1/2025", "03/31/2025");
     //await pull("LIENS",                     "03/1/2025", "03/15/2025");
     //await pull("LIS PENDENS",               "03/1/2025", "03/31/2025");
