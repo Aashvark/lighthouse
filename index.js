@@ -31,7 +31,7 @@ async function getLastRecordIndex(id) {
 }
 
 function getID(DocType) {
-    if      (DocType === "PROBATE DOCUMENT")          return '1uEUNpoqq5v4CcfQOYx3ECa6ems2n6CUk20oShefmj2w';
+    if      (DocType === "PROBATE DOCUMENT")          return '1aMJHHbELPRVvHOvtDIG13wJzv6gfAiQw7WNa-6YEfQg';
     else if (DocType === "LIENS")                     return '187HiafgDVlCLFQaZ0dWZB_5NrA4m9tQeYBAThxd78ZI';
     else if (DocType === "LIS PENDENS")               return '18eUPlKCP5l7FBLcphnHrvwvFsSxgBuon3-3p841aGr4';
     else if (DocType === "NOTICE OF CONTEST OF LIEN") return '1JnSkBDGDPs2fZCAcWcQ7zYreOFwTuIY0GrJbduV_p94';
@@ -151,38 +151,47 @@ async function pullProbates(RecordDateFrom, RecordDateTo) {
 
     let driver = await new Builder().forBrowser(Browser.CHROME).setChromeOptions(options).build();
     await driver.get("https://courtrecords.mypinellasclerk.gov/");
-    await driver.wait(until.elementLocated(By.css("#categoryPicker > div > div > button")), 1000);
+
     await driver.findElement(By.css("#categoryPicker > div > div > button")).click();
     await driver.findElement(By.css("#categoryPicker > div > div > ul > li.multiselect-item.multiselect-all.active > a > label")).click();
     await driver.findElement(By.css("#categoryPicker > div > div > ul > li:nth-child(18) > a > label")).click();
     await driver.findElement(By.css("#categoryPicker > div > div > button")).click();
-    await driver.findElement(By.id("DateFrom")).click();
-    await driver.findElement(By.id("DateFrom")).sendKeys(RecordDateFrom);
-    await driver.findElement(By.id("DateTo")).click();
-    await driver.findElement(By.id("DateTo")).sendKeys(RecordDateTo);
+
+    await driver.sleep(100);
+    await driver.executeScript(`document.getElementById('DateTo').value='${RecordDateTo}'`);
+    await driver.sleep(100);
+    await driver.executeScript(`document.getElementById('DateFrom').value='${RecordDateFrom}'`);
+
     await driver.findElement(By.id("caseSearch")).click();
 
     let index = 0;
-    await driver.wait(until.elementLocated(By.css("#caseList")), 100000);
+    await driver.wait(until.elementLocated(By.css("#caseList")), 1000000);
     let len = parseInt((await driver.findElement(By.css("#main > div:nth-child(10) > div > div.card-header > div > div.col-sm-8.col-md-8.search-bar-results")).getText()).split(" ")[2]);
     let people = [];
 
+    console.log(len);
+
     while (index < len) {
-        await driver.wait(until.elementLocated(By.css("#caseList_length > label > select")), 10000);
+        await driver.wait(until.elementLocated(By.css("#caseList_length > label > select")), 20000);
         await driver.findElement(By.css("#caseList_length > label > select")).click();
         await driver.findElement(By.css("#caseList_length > label > select > option:nth-child(5)")).click();
         await driver.findElement(By.css("#caseList_length > label > select")).click();
         await driver.sleep(10);
         index++;
 
-        let name = (await driver.findElement(By.css(`#caseList > tbody > tr:nth-child(${index}) > td:nth-child(4)`)).getText()).split(":")[1].replace("THE ESTATE OF", "").trim();
-        if (people.map((person) => person[0]).includes(name)) continue;
+        let name = (await driver.findElement(By.css(`#caseList > tbody > tr:nth-child(${index}) > td:nth-child(4)`)).getText()).split(":")[1];
+        if (name === undefined || people.map((person) => person[0]).includes(name) || name.replace("THE ESTATE OF", "") === name) continue;
+        
+        name = name.replace("THE ESTATE OF", "").trim();
 
         await driver.findElement(By.css(`#caseList > tbody > tr:nth-child(${index}) > td.colCaseNumber > a`)).click();
-        let beneficiary = await driver.findElement(By.css("#partiesCollapse > div > div > table > tbody > tr:nth-child(1) > td:nth-child(1) > span")).getText();
-        let attorney = await driver.findElement(By.css("#partiesCollapse > div > div > table > tbody > tr:nth-child(2) > td:nth-child(3)")).getText();
+        let beneficiary = await driver.findElement(By.css("#partiesCollapse > div > div > table > tbody > tr:nth-child(2) > td:nth-child(1) > span")).getText();
+        let attorney = "";
+        try { attorney = await driver.findElement(By.css("#partiesCollapse > div > div > table > tbody > tr:nth-child(2) > td:nth-child(3)")).getText(); }
+        catch (e) { attorney = ""; }
         await driver.findElement(By.css("#caseDetails > div.card-header > div > div.col-sm-2.col-md-2.search-bar-refine > a.pull-left.print-icon.print-icon-text")).click();
         people.push([name, beneficiary, attorney]);
+        console.log([name, beneficiary, attorney])
     }
     
     for (let person of people) {
@@ -214,6 +223,10 @@ async function pullProbates(RecordDateFrom, RecordDateTo) {
         await driver.get(`https://www.floridabar.org/directories/find-mbr/?lName=${attorney[attorney.length - 1]}&fName=${attorney[0]}&sdx=N&eligible=Y&deceased=N&pageNumber=1&pageSize=100`)
         
         let result = (await driver.findElements(By.css("#output > .section-body"))).at(0);
+        if (result === undefined) {
+            for (let rec of last) writeRecord(getID("PROBATE DOCUMENT"), rec);
+            continue;
+        }
         let attorney_info = [];
         attorney_info.push((await result.findElement(By.css(".profile-bar-number")).getText()).substring(5));
         
@@ -224,7 +237,8 @@ async function pullProbates(RecordDateFrom, RecordDateTo) {
         long_text = (await result.findElement(By.css("div.profile-contact > p:nth-child(2)")).getText()).split("\n");
         attorney_info.push(long_text[0].includes("Office:") ? long_text[0].substring(8) : "");
         attorney_info.push(long_text[1].includes("Cell:")   ? long_text[0].substring(8) : "");
-        attorney_info.push(await result.findElement(By.css("div.profile-contact > p:nth-child(2) .icon-email")).getText());
+        try { attorney_info.push(await result.findElement(By.css("div.profile-contact > p:nth-child(2) .icon-email")).getText()); }
+        catch (e) { attorney_info.push(" "); }
 
         for (let rec of last.map(record => record.concat(attorney_info))) writeRecord(getID("PROBATE DOCUMENT"), rec);
     }
@@ -233,7 +247,7 @@ async function pullProbates(RecordDateFrom, RecordDateTo) {
 
 async function searchName(driver, name) {
     await driver.get(`https://www.pcpao.gov/quick-search?qu=1&input=${name[name.length - 1]},%20${name.slice(0, name.length - 1).join(" ")}&search_option=owner`);
-    try { await driver.wait(until.elementLocated(By.css("#quickSearch > tbody > tr")), 10000); }
+    try { await driver.wait(until.elementLocated(By.css("#quickSearch > tbody > tr")), 20000); }
     catch (e) { return await searchName(driver, name) }
     const rows = await driver.findElements(By.css("#quickSearch > tbody > tr"));
     
@@ -273,16 +287,20 @@ async function searchProperty(driver, name, value) {
     }
     record.push(last);
     record = record.concat(name[name.length - 1], name.slice(0, name.length - 1));
+    
     record.push((await driver.findElement(By.id("mailling_add")).getText()).replace("(Unincorporated)", "").trim());
-
-    let mailling_add = record.at(5).split("\n").slice(1).join(" ").split(", ");
-    record.push(mailling_add[0]);
-    record = record.concat(mailling_add[1].trim().split(" "));
+    try {
+        let mailling_add = record.at(5).split("\n").slice(1).join(" ").split(", ");
+        record.push(mailling_add[0]);
+        record = record.concat(mailling_add[1].trim().split(" "));
+    } catch (e) { record = record.concat(["", "", "", ""]); }
 
     record.push((await driver.findElement(By.id("site_address")).getText()).replace("(Unincorporated)", "").trim());
-    let site_address = record.at(9).split("\n").slice(1).join(" ").split(", ");
-    record.push(site_address[0]);
-    record = record.concat(site_address[1].trim().split(" "));
+    try {
+        let site_address = record.at(9).split("\n").slice(1).join(" ").split(", ");
+        record.push(site_address[0]);
+        record = record.concat(site_address[1].trim().split(" "));
+    } catch (e) { record = record.concat(["", "", "", ""]); }
 
     record.push((await driver.findElement(By.id("first_second_owner")).getText()).trim().split("\n")[1]);
     if (record.at(record.length - 1) === undefined) record[record.length - 1]  = "";
@@ -290,9 +308,12 @@ async function searchProperty(driver, name, value) {
 }
 
 async function run() {
-    range = 'June';
+    range = 'december';
 
-    await pullProbates("06/01/2025", "06/30/2025");
+    //await pullProbates("01/01/2025", "01/07/2025");
+    //await pullProbates("01/08/2025", "01/14/2025");
+    //await pullProbates("01/15/2025", "01/21/2025");
+    await pullProbates("05/1/2025", "05/07/2025");
     //await pull("PROBATE DOCUMENT",          "03/1/2025", "03/31/2025");
     //await pull("LIENS",                     "03/1/2025", "03/15/2025");
     //await pull("LIS PENDENS",               "03/1/2025", "03/31/2025");
