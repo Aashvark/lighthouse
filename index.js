@@ -31,7 +31,7 @@ async function getLastRecordIndex(id) {
 }
 
 function getID(DocType) {
-    if      (DocType === "PROBATE DOCUMENT")          return '1aMJHHbELPRVvHOvtDIG13wJzv6gfAiQw7WNa-6YEfQg';
+    if      (DocType === "PROBATE DOCUMENT")          return '1d5GuwkeMOXP7-myMkTnRxoFMT9GEMGEnKVA0kPc1bdg';
     else if (DocType === "LIENS")                     return '187HiafgDVlCLFQaZ0dWZB_5NrA4m9tQeYBAThxd78ZI';
     else if (DocType === "LIS PENDENS")               return '18eUPlKCP5l7FBLcphnHrvwvFsSxgBuon3-3p841aGr4';
     else if (DocType === "NOTICE OF CONTEST OF LIEN") return '1JnSkBDGDPs2fZCAcWcQ7zYreOFwTuIY0GrJbduV_p94';
@@ -185,7 +185,10 @@ async function pullProbates(RecordDateFrom, RecordDateTo) {
         name = name.replace("THE ESTATE OF", "").trim();
 
         await driver.findElement(By.css(`#caseList > tbody > tr:nth-child(${index}) > td.colCaseNumber > a`)).click();
-        let beneficiary = await driver.findElement(By.css("#partiesCollapse > div > div > table > tbody > tr:nth-child(2) > td:nth-child(1) > span")).getText();
+        let beneficiary = "";
+        try { beneficiary = await driver.findElement(By.css("#partiesCollapse > div > div > table > tbody > tr:nth-child(2) > td:nth-child(1) > span")).getText(); }
+        catch(e) { beneficiary = ""; }
+        
         let attorney = "";
         try { attorney = await driver.findElement(By.css("#partiesCollapse > div > div > table > tbody > tr:nth-child(2) > td:nth-child(3)")).getText(); }
         catch (e) { attorney = ""; }
@@ -307,16 +310,12 @@ async function searchProperty(driver, name, value) {
 }
 
 async function run() {
-    range = 'december';
+    range = 'July';
 
-    await pullProbates("04/01/2025", "04/07/2025");
-    //await pullProbates("04/08/2025", "04/14/2025");
-    //await pullProbates("04/15/2025", "04/21/2025");
-    //await pullProbates("05/1/2025", "05/07/2025");
-    //await pull("PROBATE DOCUMENT",          "03/1/2025", "03/31/2025");
-    //await pull("LIENS",                     "03/1/2025", "03/15/2025");
-    //await pull("LIS PENDENS",               "03/1/2025", "03/31/2025");
-    //await pull("NOTICE OF CONTEST OF LIEN", "03/1/2025", "03/31/2025");
+    //await pullProbates("07/13/2025", "07/20/2025");
+    //await pull("LIENS",                     "07/01/2025", "07/20/2025");
+    await pull("LIS PENDENS",               "07/01/2025", "07/20/2025");
+    await pull("NOTICE OF CONTEST OF LIEN", "07/01/2025", "07/20/2025");
 }
 
 run();

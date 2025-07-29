@@ -9,7 +9,6 @@
   },
   "license": "ISC",
   "dependencies": {
-    "cron": "^4.3.1",
     "fs": "^0.0.1-security",
     "googleapis": "^150.0.1",
     "selenium-webdriver": "^4.33.0"
