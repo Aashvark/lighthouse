@@ -166,7 +166,7 @@ async function pullProbates(RecordDateFrom, RecordDateTo) {
 
     let index = 0;
     await driver.wait(until.elementLocated(By.css("#caseList")), 1000000);
-    let len = parseInt((await driver.findElement(By.css("#main > div:nth-child(10) > div > div.card-header > div > div.col-sm-8.col-md-8.search-bar-results")).getText()).split(" ")[2]);
+    let len = parseInt((await driver.findElements(By.css("#caseList > tbody > tr"))).length);
     let people = [];
 
     console.log(len);
@@ -310,12 +310,15 @@ async function searchProperty(driver, name, value) {
 }
 
 async function run() {
-    range = 'July';
+    range = 'August';
 
-    //await pullProbates("07/13/2025", "07/20/2025");
-    //await pull("LIENS",                     "07/01/2025", "07/20/2025");
-    await pull("LIS PENDENS",               "07/01/2025", "07/20/2025");
-    await pull("NOTICE OF CONTEST OF LIEN", "07/01/2025", "07/20/2025");
+    var start = "08/10/2025";
+    var end = "08/30/2025";
+
+    await pullProbates(start, end);
+    await pull("LIENS",                     start, end);
+    await pull("LIS PENDENS",               start, end);
+    await pull("NOTICE OF CONTEST OF LIEN", start, end);
 }
 
 run();
