@@ -310,10 +310,10 @@ async function searchProperty(driver, name, value) {
 }
 
 async function run() {
-    range = 'August';
+    range = 'September';
 
-    var start = "08/10/2025";
-    var end = "08/30/2025";
+    var start = "09/16/2025";
+    var end = "09/30/2025";
 
     await pullProbates(start, end);
     await pull("LIENS",                     start, end);
