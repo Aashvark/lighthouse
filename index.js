@@ -1,4 +1,4 @@
-const { Builder, By, until, Browser, WebDriver } = require("selenium-webdriver");
+const { Builder, By, until, Browser } = require("selenium-webdriver");
 const Chrome = require("selenium-webdriver/chrome");
 const fs = require("fs");
 const path = require('path');
@@ -166,6 +166,9 @@ async function pullProbates(RecordDateFrom, RecordDateTo) {
 
     let index = 0;
     await driver.wait(until.elementLocated(By.css("#caseList")), 1000000);
+    await driver.findElement(By.css("#caseList_length > label > select")).click();
+    await driver.findElement(By.css("#caseList_length > label > select > option:nth-child(5)")).click();
+    await driver.findElement(By.css("#caseList_length > label > select")).click();
     let len = parseInt((await driver.findElements(By.css("#caseList > tbody > tr"))).length);
     let people = [];
 
@@ -312,13 +315,13 @@ async function searchProperty(driver, name, value) {
 async function run() {
     range = 'September';
 
-    var start = "09/16/2025";
+    var start = "09/22/2025";
     var end = "09/30/2025";
 
     await pullProbates(start, end);
-    await pull("LIENS",                     start, end);
-    await pull("LIS PENDENS",               start, end);
-    await pull("NOTICE OF CONTEST OF LIEN", start, end);
+    //await pull("LIENS",                     start, end);
+    //await pull("LIS PENDENS",               start, end);
+    //await pull("NOTICE OF CONTEST OF LIEN", start, end);
 }
 
 run();
