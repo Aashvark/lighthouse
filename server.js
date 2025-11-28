@@ -5,21 +5,18 @@ const process    = require('node:process');
 
 const handlebars = require("handlebars");
 
+const { Builder, By, until, Browser } = require("selenium-webdriver");
+const Chrome = require("selenium-webdriver/chrome");
+const { google } = require('googleapis');
+
+const CREDENTIALS_PATH = path.join(process.cwd(), 'json/credentials.json');
+let range;
+
 fastify.register(require("@fastify/static"), { root: path.join(__dirname, "public"), prefix: "/" });
 fastify.register(require("@fastify/view"), { engine: { handlebars: handlebars } });
 fastify.register(require("@fastify/formbody"));
 
 handlebars.logger.level = "debug";
-
-const { Builder, By, until, Browser } = require("selenium-webdriver");
-const Chrome = require("selenium-webdriver/chrome");
-const fs = require("fs");
-const path = require('path');
-const process = require('process');
-const { google } = require('googleapis');
-
-const CREDENTIALS_PATH = path.join(process.cwd(), 'json/credentials.json');
-let range;
 
 const auth = new google.auth.GoogleAuth({
     keyFile: CREDENTIALS_PATH,
