@@ -11,6 +11,7 @@ fastify.register(require("@fastify/formbody"));
 
 handlebars.logger.level = "debug";
 
-fastify.get("/", function (request, reply) { return reply.view('/src/index.hbs'); });
+fastify.get("/",  function (request, reply) { return reply.view('/src/index.hbs'); });
+fastify.post("/", function (request, reply) { return reply.view("/src/index.hbs", { text: "works" }); });
 
 fastify.listen({ port: process.env.PORT || 4000, host: "0.0.0.0" }, function (err, address) { if (err) { console.error(err); process.exit(1); } } );
