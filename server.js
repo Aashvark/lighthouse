@@ -334,7 +334,7 @@ fastify.post("/", async function (request, reply) {
   await pull("LIS PENDENS",               start, end);
   await pull("NOTICE OF CONTEST OF LIEN", start, end);
 
-  return reply.view("/src/index.hbs", { text: month });
+  return reply.view("/src/index.hbs");
 });
 
 fastify.listen({ port: process.env.PORT || 4000, host: "0.0.0.0" }, function (err, address) { if (err) { console.error(err); process.exit(1); } } );
